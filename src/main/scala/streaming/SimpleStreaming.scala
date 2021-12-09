@@ -14,7 +14,6 @@ import scala.collection.immutable.Queue
   */
 object SimpleStreaming extends ExtraStreamOps with SimpleStreamingInterface {
 
-
   /** Change each of the streamed elements to their String values */
   def mapToStrings(ints: Source[Int, NotUsed]): Source[String, NotUsed] =
     ints.map(_.toString)
@@ -101,7 +100,8 @@ object SimpleStreaming extends ExtraStreamOps with SimpleStreamingInterface {
     * If you'd like to see the exact events happening you can call
     * `.logAllEvents` on the Flow you are returning here
     */
-  def sumUntilBackpressureGoesAway: Flow[Int, Int, _] = ???
+  def sumUntilBackpressureGoesAway: Flow[Int, Int, _] =
+    Flow[Int].conflate(_ + _)
 
   /** A faster downstream wants to consume elements, yet the upstream is slow at
     * providing them. Provide a Flow that is able to extrapolate "invent" values
@@ -115,7 +115,8 @@ object SimpleStreaming extends ExtraStreamOps with SimpleStreamingInterface {
     *
     * See also [[Iterator.continually]]
     */
-  def keepRepeatingLastObservedValue: Flow[Int, Int, _] = ???
+  def keepRepeatingLastObservedValue: Flow[Int, Int, _] =
+    Flow[Int].expand(a => Iterator.continually(a))
 
   /** Check the statefulMapConcat operator and creates an operators that
     * averages values over a moving windows of timeInSeconds second. The stream
