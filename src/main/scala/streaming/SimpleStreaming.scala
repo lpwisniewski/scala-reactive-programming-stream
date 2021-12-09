@@ -123,5 +123,32 @@ object SimpleStreaming extends ExtraStreamOps with SimpleStreamingInterface {
     * should outputs value only when the average changed.
     */
   case class TimedValue(value: Double, timeInSeconds: Int)
-  def movingAverage(windowSizeInSecond: Int): Flow[TimedValue, Double, _] = ???
+  def movingAverage(windowSizeInSecond: Int): Flow[TimedValue, Double, _] =
+    Flow[TimedValue].statefulMapConcat { () =>
+      var queue = Queue[TimedValue]()
+      var previousAverage = 0d;
+      { element =>
+        queue = filterOldValues(queue.enqueue(element), windowSizeInSecond)
+        println(queue)
+        val avg = average(queue)
+        if (avg != previousAverage) {
+          previousAverage = avg
+          avg :: Nil
+        } else Nil
+      }
+    }
+
+  def average(values: Queue[TimedValue]): Double =
+    values.map(_.value).reduce(_ + _).toDouble / values.size
+
+  def filterOldValues(
+      values: Queue[TimedValue],
+      window: Double
+  ): Queue[TimedValue] = {
+    val timeLimit =
+      values.last.timeInSeconds - window
+    if (timeLimit > values.head.timeInSeconds)
+      filterOldValues(values.dequeue._2, window)
+    else values
+  }
 }
