@@ -14,11 +14,14 @@ import scala.collection.immutable.Queue
   */
 object SimpleStreaming extends ExtraStreamOps with SimpleStreamingInterface {
 
+
   /** Change each of the streamed elements to their String values */
-  def mapToStrings(ints: Source[Int, NotUsed]): Source[String, NotUsed] = ???
+  def mapToStrings(ints: Source[Int, NotUsed]): Source[String, NotUsed] =
+    ints.map(_.toString)
 
   /** Filter elements which are even (use the modulo operator: `%`) */
-  def filterEvenValues: Flow[Int, Int, NotUsed] = ???
+  def filterEvenValues: Flow[Int, Int, NotUsed] =
+    Flow[Int].filter(a => a % 2 == 0)
 
   /** Rather than re-using operations as `operation(source): Source`, let's
     * re-use the previously built Flow[Int, Int].
@@ -28,7 +31,8 @@ object SimpleStreaming extends ExtraStreamOps with SimpleStreamingInterface {
     */
   def filterUsingPreviousFilterFlowAndMapToStrings(
       ints: Source[Int, NotUsed]
-  ): Source[String, NotUsed] = ???
+  ): Source[String, NotUsed] =
+    mapToStrings(ints.via(filterEvenValues))
 
   /** You likely noticed that the `via` composition style reads more nicely
     * since it is possible to read it from left to right the same way the
@@ -40,13 +44,15 @@ object SimpleStreaming extends ExtraStreamOps with SimpleStreamingInterface {
   def filterUsingPreviousFlowAndMapToStringsUsingTwoVias(
       ints: Source[Int, NotUsed],
       toString: Flow[Int, String, _]
-  ): Source[String, NotUsed] = ???
+  ): Source[String, NotUsed] =
+    ints.via(filterEvenValues).via(toString)
 
   /** You can also "trim" a stream, by taking a number of elements (or by
     * predicate). In this method, take the first element only -- the stream
     * should be then completed once the first element has arrived.
     */
-  def firstElementSource(ints: Source[Int, NotUsed]): Source[Int, NotUsed] = ???
+  def firstElementSource(ints: Source[Int, NotUsed]): Source[Int, NotUsed] =
+    ints.take(1)
 
   /** This time we will actually *run* the stream. Hint: This is also the first
     * time we will use an "Materialized Value"; Look at Sink.head's type
@@ -56,20 +62,27 @@ object SimpleStreaming extends ExtraStreamOps with SimpleStreamingInterface {
     */
   def firstElementFuture(ints: Source[Int, NotUsed])(implicit
       mat: Materializer
-  ): Future[Int] = ???
+  ): Future[Int] =
+    ints.runWith(Sink.head)
 
   // --- failure handling ---
 
   /** Recover [[IllegalStateException]] values to a -1 value
     */
-  def recoverSingleElement(ints: Source[Int, NotUsed]): Source[Int, NotUsed] = ???
+  def recoverSingleElement(ints: Source[Int, NotUsed]): Source[Int, NotUsed] =
+    ints.recover { case e: IllegalStateException =>
+      -1
+    }
 
   /** Recover [[IllegalStateException]] values to the provided fallback Source
     */
   def recoverToAlternateSource(
       ints: Source[Int, NotUsed],
       fallback: Source[Int, NotUsed]
-  ): Source[Int, NotUsed] = ???
+  ): Source[Int, NotUsed] =
+    ints.recoverWith { case e: IllegalStateException =>
+      fallback
+    }
 
   // working with rate
 
